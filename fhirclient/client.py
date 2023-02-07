@@ -47,7 +47,7 @@ class FHIRClient(object):
         self.launch_context = None
         """ Context parameters supplied by the server during launch. """
         
-        self.wants_patient = True
+        self.wants_patient = False
         """ If true and launched without patient, will add the correct scope
         to indicate that the server should prompt for a patient after login. """
         
