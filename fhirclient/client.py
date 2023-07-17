@@ -71,12 +71,12 @@ class FHIRClient(object):
 
         # init from settings dict
         elif settings is not None:
-            if not 'app_id' in settings:
+            if not 'app_id' in settings and not 'auth_type' in settings:
                 raise Exception("Must provide 'app_id' in settings dictionary")
             if not 'api_base' in settings:
                 raise Exception("Must provide 'api_base' in settings dictionary")
 
-            self.app_id = settings['app_id']
+            self.app_id = settings.get('app_id')
             self.app_secret = settings.get('app_secret')
             self.redirect = settings.get('redirect_uri')
             self.patient_id = settings.get('patient_id')
