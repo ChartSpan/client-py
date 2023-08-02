@@ -152,6 +152,29 @@ patient = p.Patient(pjs)
 patient.name[0].given
 # prints patient's given name array in the first `name` property
 ```
+#### Token Server Support
+
+To use the token server to get tokens and handle renewal, update the `settings` parameter when creating the FHIRClient object. Add an `auth_type` field set to `tokenserver`, and an additional parameter named `token_server_parameters`. This settings dictionary should contain the request data that will be sent to the token server when getting tokens; the specifics will vary depending on what system you're connecting to. For athena, this looks like this:
+
+```python
+from fhirclient import client
+
+token_server_arn = "arn:aws:lambda:..."
+api_base = "get this from SSM"
+
+params = {
+    "auth_type": "tokenserver",
+    "token_server_function_name": token_server_arn,
+    "api_base": api_base,
+    "token_server_params": {
+        "ehr_name": "athena"
+    }
+}
+
+smart = client.FHIRClient(settings=params)
+```
+
+Usage after creation remains the same as above.
 
 ### Flask App
 
