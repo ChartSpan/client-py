@@ -15,6 +15,12 @@ def snake_to_camel_case(s: str):
     This function converts one to the other.
     """
     first, *rest = s.split('_')
+    # Special case - if no underscores, just return the original string
+    # lets us use orgID as a parameter without turning it into orgid
+    if not rest:
+        return s
+
+    # Otherwise remap to camel case
     return ''.join([first.lower(), *map(str.title, rest)])
 
 
