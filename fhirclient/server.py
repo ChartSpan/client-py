@@ -51,22 +51,29 @@ class FHIRServer(object):
         # Use a single requests Session for all "requests"
         self.session = requests.Session()
 
+        self._set_base_uri(base_uri)
+        self._capability = None
+        if state is not None:
+            self.from_state(state)
+        if self._auth_type_is_set() and (not self.base_uri or len(self.base_uri) <= 10):
+            raise Exception("FHIRServer must be initialized with `base_uri` or `state` containing the base-URI, but neither happened")
+
+    def _auth_type_is_set(self):
+        state = self.state
+        return state["auth_type"] != "none"
+
+    def _set_base_uri(self, base_uri):
         # A URI can't possibly be less than 11 chars
         # make sure we end with "/", otherwise the last path component will be
         # lost when creating URLs with urllib
         if base_uri is not None and len(base_uri) > 10:
-            self.base_uri = base_uri if '/' == base_uri[-1] else base_uri + '/'
+            self.base_uri = base_uri if base_uri.endswith('/') else base_uri + '/'
             self.aud = base_uri
-        self._capability = None
-        if state is not None:
-            self.from_state(state)
-        if not self.base_uri or len(self.base_uri) <= 10:
-            raise Exception("FHIRServer must be initialized with `base_uri` or `state` containing the base-URI, but neither happened")
+        return self.base_uri
 
     def should_save_state(self):
         if self.client is not None:
             self.client.save_state()
-
 
     # MARK: Server CapabilityStatement
 
@@ -85,7 +92,7 @@ class FHIRServer(object):
             self.should_save_state()
 
         elif self._capability is None or force:
-            logger.info('Fetching CapabilityStatement from {0}'.format(self.base_uri))
+            logger.info('Fetching CapabilityStatement from {0}'.format(self._get_base_uri()))
             from models import capabilitystatement
             conf = capabilitystatement.CapabilityStatement.read_from('metadata', self)
             self._capability = conf
@@ -141,6 +148,21 @@ class FHIRServer(object):
 
     # MARK: Requests
 
+    def _get_base_uri(self):
+        # Explicit setting takes precedence
+        if self.base_uri:
+            return self.base_uri
+
+        if self.auth is None:
+            raise Exception("Not ready to call, I do not have an auth instance")
+
+        if not hasattr(self.auth, "base_uri"):
+            raise Exception("Not ready to call, no explicit base_uri and this auth method does not supply one")
+
+        self._set_base_uri(self.auth.base_uri)
+
+        return self.base_uri
+
     @property
     def ready(self):
         """ Check whether the server is ready to make calls, i.e. is has
@@ -188,8 +210,9 @@ class FHIRServer(object):
 
         :returns: The response object
         """
-        assert self.base_uri and path
-        url = urlparse.urljoin(self.base_uri, path)
+        base_uri = self._get_base_uri()
+        assert base_uri and path
+        url = urlparse.urljoin(base_uri, path)
 
         header_defaults = {
             'Accept': FHIRJSONMimeType,
@@ -217,7 +240,7 @@ class FHIRServer(object):
         :throws: Exception on HTTP status >= 400
         :returns: The response object
         """
-        url = urlparse.urljoin(self.base_uri, path)
+        url = urlparse.urljoin(self._get_base_uri(), path)
         headers = {
             'Content-type': FHIRJSONMimeType,
             'Accept': FHIRJSONMimeType,
@@ -241,7 +264,7 @@ class FHIRServer(object):
         :throws: Exception on HTTP status >= 400
         :returns: The response object
         """
-        url = urlparse.urljoin(self.base_uri, path)
+        url = urlparse.urljoin(self._get_base_uri(), path)
         headers = {
             'Content-type': FHIRJSONMimeType,
             'Accept': FHIRJSONMimeType,
@@ -279,7 +302,7 @@ class FHIRServer(object):
         :param bool nosign: If set to True, the request will not be signed
         :returns: The response object
         """
-        url = urlparse.urljoin(self.base_uri, path)
+        url = urlparse.urljoin(self._get_base_uri(), path)
         headers = {
             'Accept': FHIRJSONMimeType,
             'Accept-Charset': 'UTF-8',

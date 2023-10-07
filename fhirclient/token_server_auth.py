@@ -43,7 +43,7 @@ class TokenServerAuth(FHIRAuth):
         self._token_server_params = None
         self.access_token = None
         self.expires_at = None
-
+        self.base_uri = None
         super(TokenServerAuth, self).__init__(state=state)
 
     @property
@@ -87,8 +87,10 @@ class TokenServerAuth(FHIRAuth):
                 logger.error(msg)
                 raise Exception(msg)
 
-            self.access_token = results['token']
+            self.access_token = results["token"]
             self.expires_at = datetime.fromisoformat(results["expiresAt"])
+            self.base_uri = results["apiBase"]
+
         except ClientError as err:
             logger.error(
                 f'Lambda request to token server failed, code '
@@ -129,6 +131,8 @@ class TokenServerAuth(FHIRAuth):
             s['token_server_params'] = self._token_server_params
         if self.access_token is not None:
             s['access_token'] = self.access_token
+        if self.base_uri is not None:
+            s['base_uri'] = self.base_uri
 
     def from_state(self, state):
         """
@@ -139,6 +143,7 @@ class TokenServerAuth(FHIRAuth):
         self._token_server_arn = state.get('token_server_function_name', self._token_server_arn)
         self._token_server_params = state.get('token_server_params', self._token_server_params)
         self.access_token = state.get('access_token', self.access_token)
+        self.base_uri = state.get('base_uri', self.base_uri)
 
 logger.debug('Registering token server auth type')
 TokenServerAuth.register()
