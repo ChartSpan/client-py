@@ -73,7 +73,7 @@ class FHIRClient(object):
         elif settings is not None:
             if not 'app_id' in settings and not 'auth_type' in settings:
                 raise Exception("Must provide 'app_id' in settings dictionary")
-            if not 'api_base' in settings:
+            if not 'api_base' in settings and not 'auth_type' in settings:
                 raise Exception("Must provide 'api_base' in settings dictionary")
 
             self.app_id = settings.get('app_id')
@@ -83,7 +83,7 @@ class FHIRClient(object):
             self.scope = settings.get('scope', self.scope)
             self.launch_token = settings.get('launch_token')
             self.jwt_token = settings.get('jwt_token', None)
-            self.server = FHIRServer(self, base_uri=settings['api_base'], settings=self.settings)
+            self.server = FHIRServer(self, base_uri=settings.get('api_base'), settings=self.settings)
         else:
             raise Exception("Must either supply settings or a state upon client initialization")
 
